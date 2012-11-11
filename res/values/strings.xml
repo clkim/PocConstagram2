@@ -1,0 +1,14 @@
+<resources>
+
+    <string name="menu_add_account">Add Account</string>
+
+    <!-- Android Account Info -->
+    <string name="account_label">Constant Contact</string>
+
+    <!-- Choose Account Activity -->
+    <string name="choose_account_title">Choose Account</string>
+    
+    <!-- Authenticator Activity -->
+    <string name="unable_load_url">Unable to load Constant Contact authentication website</string>
+
+</resources>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="15dp"
+	    style="?android:attr/listSeparatorTextViewStyle" >
+    
+    	<CheckBox
+        	android:id="@+id/checkBox1SendEmail"
+        	android:layout_width="match_parent"
+        	android:layout_height="wrap_content"
+        	android:checked="true"
+        	android:text="Email" />
+     	
+        <RadioGroup
+            android:id="@+id/radioGroup1Send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="30dp" >
+
+            <RadioButton
+                android:id="@+id/radio0Send"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="RadioButton" />
+
+            <RadioButton
+                android:id="@+id/radio1Send"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RadioButton" />
+
+            <RadioButton
+                android:id="@+id/radio2Send"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RadioButton" />
+        </RadioGroup>
+            	
+    </LinearLayout>
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+	    style="?android:attr/listSeparatorTextViewStyle" >
+    
+    	<CheckBox
+        	android:id="@+id/checkBox2SendFacebook"
+        	android:layout_width="match_parent"
+        	android:layout_height="wrap_content"
+        	android:text="Facebook" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+	    style="?android:attr/listSeparatorTextViewStyle" >
+    
+    	<CheckBox
+        	android:id="@+id/checkBox3SendTwitter"
+        	android:layout_width="match_parent"
+        	android:layout_height="wrap_content"
+        	android:text="Twitter" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="15dp"
+	    style="?android:attr/listSeparatorTextViewStyle" >
+    
+    	<ImageButton
+       		android:id="@+id/imageButton1Send"
+       		android:layout_width="wrap_content"
+       		android:layout_height="wrap_content"
+       		android:src="@drawable/ic_menu_send"
+       		android:layout_marginTop="7dp"
+       		android:layout_marginBottom="7dp" />
+    	
+    	<TextView
+		    android:id="@+id/textView1Send"
+		    android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:textAppearance="?android:attr/textAppearanceMedium"
+		    android:text="Send"
+		    android:layout_marginLeft="3dp"
+			android:layout_gravity="center_vertical" />
+    </LinearLayout>
+    
+</LinearLayout>

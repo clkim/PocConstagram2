@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="servers_entries">
+        <item>D1</item>
+        <item>F1</item>
+        <item>F2</item>
+        <item>L1</item>
+        <item>S1</item>
+        <item>Public</item>
+    </string-array>
+    <string-array name="servers_values">
+        <item>d1</item>
+        <item>f1</item>
+        <item>f2</item>
+        <item>l1</item>
+        <item>s1</item>
+        <item></item>
+    </string-array>
+
+</resources>
