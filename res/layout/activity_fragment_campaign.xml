@@ -20,87 +20,101 @@
 	<LinearLayout
 	    android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
-	    android:orientation="horizontal" >
-    
-	<LinearLayout
-	    android:layout_width="match_parent"
-	    android:layout_height="wrap_content"
-	    android:orientation="vertical"
-	    android:padding="15dp"
+	    android:orientation="horizontal"
 	    style="?android:attr/listSeparatorTextViewStyle" >
-		<TextView
-		    android:id="@+id/textView1Picture"
-		    android:layout_width="wrap_content"
-		    android:layout_height="wrap_content"
-		    android:ems="10"
-		    android:text="Picture (optional)" />
-		    <!-- android:textAppearance="?android:attr/textAppearanceMedium" -->
-	    <LinearLayout
-	    	android:layout_width="match_parent"
-	    	android:layout_height="wrap_content"
-	    	android:orientation="horizontal"
-	    	android:paddingTop="15dp" >
-	    	<ImageButton
-	        	android:id="@+id/imageButton1Camera"
-	        	android:layout_width="wrap_content"
-	        	android:layout_height="wrap_content"
-	        	android:src="@drawable/ic_menu_camera"
-	        	android:layout_marginLeft="15dp" />
-	    	<TextView
-		    	android:id="@+id/textView1TakePicture"
-		    	android:layout_width="wrap_content"
-		    	android:layout_height="wrap_content"
-		    	android:ems="10"
-		    	android:text="Take Picture"
-		    	android:layout_marginLeft="3dp"
-		    	android:layout_gravity="center_vertical" />
-	    </LinearLayout>
-	    <LinearLayout
-	    	android:layout_width="match_parent"
-	    	android:layout_height="wrap_content"
-	    	android:orientation="horizontal" >
-	    	<ImageButton
-	        	android:id="@+id/imageButton2Gallery"
-	        	android:layout_width="wrap_content"
-	        	android:layout_height="wrap_content"
-	        	android:src="@drawable/ic_menu_gallery"
-	        	android:layout_marginLeft="15dp" />
-	    	<TextView
-		    	android:id="@+id/textView1Gallery"
-		    	android:layout_width="wrap_content"
-		    	android:layout_height="wrap_content"
-		    	android:ems="10"
-		    	android:text="Gallery App"
-		    	android:layout_marginLeft="3dp"
-		    	android:layout_gravity="center_vertical" />
-	    </LinearLayout>
-	    <LinearLayout
-	    	android:layout_width="match_parent"
-	    	android:layout_height="wrap_content"
-	    	android:orientation="horizontal" >
-	    	<ImageButton
-	        	android:id="@+id/imageButton3Get"
-	        	android:layout_width="wrap_content"
-	        	android:layout_height="wrap_content"
-	        	android:src="@drawable/ic_input_get"
-	        	android:layout_marginLeft="15dp" />
-	    	<TextView
-		    	android:id="@+id/textView1MyLibrary"
-		    	android:layout_width="wrap_content"
-		    	android:layout_height="wrap_content"
-		    	android:ems="10"
-		    	android:text="My Library"
-		    	android:layout_marginLeft="3dp"
-				android:layout_gravity="center_vertical" />
-	    </LinearLayout>
-	</LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="15dp" >
 
-    <ImageView
-      android:id="@+id/imageview"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:contentDescription="Image in Campaign"
-      />
+            <TextView
+                android:id="@+id/textView1Picture"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:text="Picture (optional)" />
+            	<!-- android:textAppearance="?android:attr/textAppearanceMedium" -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="15dp" >
+
+                <ImageButton
+                    android:id="@+id/imageButton1Camera"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="15dp"
+                    android:src="@drawable/ic_menu_camera" />
+
+                <TextView
+                    android:id="@+id/textView1TakePicture"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginLeft="3dp"
+                    android:ems="10"
+                    android:text="Take Picture" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <ImageButton
+                    android:id="@+id/imageButton2Gallery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="15dp"
+                    android:src="@drawable/ic_menu_gallery" />
+
+                <TextView
+                    android:id="@+id/textView1Gallery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginLeft="3dp"
+                    android:ems="10"
+                    android:text="Gallery App" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <ImageButton
+                    android:id="@+id/imageButton3Get"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="15dp"
+                    android:src="@drawable/ic_input_get" />
+
+                <TextView
+                    android:id="@+id/textView1MyLibrary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginLeft="3dp"
+                    android:ems="10"
+                    android:text="My Library" />
+            
+            </LinearLayout>
+        
+        </LinearLayout>
+        
+        <ImageView
+            android:id="@+id/imageview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="15dp"
+            android:contentDescription="Image in Campaign"
+            android:src="@drawable/ic_launcher" />
     
     </LinearLayout>
     
