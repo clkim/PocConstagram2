@@ -215,8 +215,8 @@ public class MainActivity extends SherlockFragmentActivity {
     
 	private String mParseUriToFilepath(Uri uri) {
 		// copied over from UploadMLP app
-		// if uri is from Gallery app after picking a DCIM/Camera image, uri is 'content://media/external/images/media/1'
-		// if uri is from Gallery app after picking a Pictures folder image, uri is 'content://media/external/images/media/2'
+		// if from Gallery app after picking a DCIM/Camera image, uri is 'content://media/external/images/media/1'
+		// if from Gallery app after picking a Pictures folder image, uri is 'content://media/external/images/media/2'
 		String[] projection = { MediaStore.Images.Media.DATA }; // value is '_data'
 		Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
 		if (cursor != null) {
@@ -465,7 +465,7 @@ public class MainActivity extends SherlockFragmentActivity {
 					try {
 						// get time now
 						Calendar cTime = Calendar.getInstance();
-						cTime.add(Calendar.MINUTE, 5); // arbitrarily add 5 minute delay
+						cTime.add(Calendar.MINUTE, 15); // arbitrarily add 15 minute delay
 						// get soonest time to schedule email campaign as a Date
 						Date soonestAllowed = cTime.getTime();
 						
