@@ -1,13 +1,22 @@
 package com.examplectct.pocconstagram2;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -21,6 +30,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
@@ -28,7 +38,6 @@ import android.widget.Toast;
 import com.actionbarsherlock.app.SherlockFragment;
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
-import com.constantcontact.appconnect.ApiError;
 import com.constantcontact.appconnect.AppConnectApi;
 import com.constantcontact.appconnect.AppConnectApi.Result;
 import com.constantcontact.appconnect.ConstantContactApiException;
@@ -44,14 +53,18 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static final String ENVIRONMENT		= "l1";
 	private static final long EXPIRATION		= 0l; // not used?
 	
-	private static final String TAG_LOG			= "MainActivity";
+	private static final String TAG_LOG						= "MainActivity";
+	private static final int ACTION_PICK_PHOTO_GALLERY		= 1;	// there is a bug, see
+	private static final int ACTION_PICK_PHOTO_GALLERY_BUG	= 65537;// https://groups.google.com/forum/?fromgroups=#!topic/android-developers/NiM_dAOtXQU
 	
 	private static View templatesView;
 	private static View audienceView;
 	private static RadioGroup templatesRadioGroup;
+	private static ImageView campaignImageView;
+	private static Bitmap mImageBitmap;
+	
 	private static AppConnectApi acApi;
 	private static Account account;
-	
 	private static Handler handler;
 	
 	private static ArrayList<EmailList> emailLists = new ArrayList<EmailList>();
@@ -186,7 +199,69 @@ public class MainActivity extends SherlockFragmentActivity {
         Log.d(TAG_LOG, "**Ending activity onCreate()");
     }
 
+    
     @Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		switch (requestCode) {
+		case ACTION_PICK_PHOTO_GALLERY_BUG: {
+			if (resultCode == RESULT_OK){  
+	            Uri selectedImageUri = intent.getData();
+	            String mCurrentPhotoPath = mParseUriToFilepath(selectedImageUri);
+	            setPicFromExifThumbnail(mCurrentPhotoPath);
+	        }
+		}
+		}
+	}
+    
+	private String mParseUriToFilepath(Uri uri) {
+		// copied over from UploadMLP app
+		// if uri is from Gallery app after picking a DCIM/Camera image, uri is 'content://media/external/images/media/1'
+		// if uri is from Gallery app after picking a Pictures folder image, uri is 'content://media/external/images/media/2'
+		String[] projection = { MediaStore.Images.Media.DATA }; // value is '_data'
+		Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+		if (cursor != null) {
+			// could be null if uri is not from Gallery app
+			//  e.g. if you used OI file manager for picking the media
+			int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+			cursor.moveToFirst();
+			String selectedImagePath = cursor.getString(column_index);
+			cursor.close();
+			if (selectedImagePath != null) {
+				return selectedImagePath;
+			}
+		}
+		// if uri is not from Gallery app, e.g. from OI file manager
+		String filemanagerPath = uri.getPath();
+		if (filemanagerPath != null) {
+			return filemanagerPath;
+		}
+
+		return null;
+	}
+	
+	private void setPicFromExifThumbnail(String mCurrentPhotoPath) {
+		try {
+			ExifInterface exif = new ExifInterface(mCurrentPhotoPath);
+			mImageBitmap = null;
+			if (exif.hasThumbnail()) { //TODO a picture cropped within Gallery app seems does not have exif so will not display
+				byte[] data = exif.getThumbnail();
+				mImageBitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+				// rotate if portrait
+				if (ExifInterface.ORIENTATION_ROTATE_90 == exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)) {
+					Matrix matrix = new Matrix();
+					matrix.preRotate(90f);
+					mImageBitmap = Bitmap.createBitmap(mImageBitmap, 0, 0, mImageBitmap.getWidth(), mImageBitmap.getHeight(), matrix, true);
+				}
+			}
+			// associate the bitmap to the imageView
+			if (mImageBitmap!=null) campaignImageView.setImageBitmap(mImageBitmap);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getSupportMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
@@ -245,10 +320,32 @@ public class MainActivity extends SherlockFragmentActivity {
 		public View onCreateView(LayoutInflater inflater, ViewGroup container,
 				Bundle savedInstanceState) {
 			Log.d(TAG_LOG, "**Starting/Ending CampaignFragment's onCreateView()");
-			// inflate the fragment layout
-			return inflater.inflate(R.layout.activity_fragment_campaign, container, false);
-			//return super.onCreateView(inflater, container, savedInstanceState);
+			View view = inflater.inflate(R.layout.activity_fragment_campaign, container, false);
+			
+			// set image view
+			campaignImageView = (ImageView) view.findViewById(R.id.imageview);
+			if (mImageBitmap!=null) campaignImageView.setImageBitmap(mImageBitmap);
+			
+			// set button listeners
+			ImageButton cameraButton = (ImageButton) view.findViewById(R.id.imageButton1Camera);
+			ImageButton galleryButton = (ImageButton) view.findViewById(R.id.imageButton2Gallery);
+			ImageButton getLibraryButton = (ImageButton) view.findViewById(R.id.imageButton3Get);
+			cameraButton.setOnClickListener(jOnClickListener);
+			galleryButton.setOnClickListener(jOnClickListener);
+			getLibraryButton.setOnClickListener(jOnClickListener);
+			
+			return view;
 		}
+		
+		private OnClickListener jOnClickListener = new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				Intent gIntent = new Intent(Intent.ACTION_PICK,
+						android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+				startActivityForResult(gIntent, ACTION_PICK_PHOTO_GALLERY);
+			}
+		};
     }
     
     /**
