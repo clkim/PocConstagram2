@@ -582,7 +582,8 @@ public class AppConnectApi {
 		}
 	}
 	
-//	clk: new scheduleCampaign overloaded methods; also need new Schedule class in campaigns package
+// clk: new scheduleCampaign() overloaded methods
+// clk: also need new Schedule class in campaigns package
 	public Result<Schedule> scheduleCampaign(long campaignId, Date scheduledDate, Locale locale)
 			throws ConstantContactApiException {
 		// format date to utc time string
