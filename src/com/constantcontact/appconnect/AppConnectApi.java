@@ -28,6 +28,7 @@ import android.util.Log;
 
 import com.constantcontact.appconnect.campaigns.Campaign;
 import com.constantcontact.appconnect.campaigns.CampaignStatus;
+import com.constantcontact.appconnect.campaigns.MessageFooter;
 import com.constantcontact.appconnect.campaigns.Schedule;
 import com.constantcontact.appconnect.contacts.Contact;
 import com.constantcontact.appconnect.contacts.EmailList;
@@ -582,8 +583,8 @@ public class AppConnectApi {
 		}
 	}
 	
-// clk: new scheduleCampaign() overloaded methods
-// clk: also need new Schedule class in campaigns package
+//	clk: new scheduleCampaign() overloaded methods
+//	clk: also need new Schedule class in campaigns package
 	public Result<Schedule> scheduleCampaign(long campaignId, Date scheduledDate, Locale locale)
 			throws ConstantContactApiException {
 		// format date to utc time string
@@ -600,8 +601,7 @@ public class AppConnectApi {
 			final LinkedHashMap<String, String> request = new LinkedHashMap<String, String>();
 			request.put("scheduled_date", scheduledDateString);
 
-			String requestJson;
-			requestJson = _om.writeValueAsString(request);
+			String requestJson = _om.writeValueAsString(request);
 			Response response = doApiRequestWithJson(POST, "campaigns/" + campaignId + "/schedules", requestJson);
 			Schedule result = null;
 			if (response.responseCode == HttpStatus.SC_OK || response.responseCode == HttpStatus.SC_CREATED) {
@@ -622,6 +622,31 @@ public class AppConnectApi {
 		}
 	}
 
+//	clk: new createCampaign()
+//	clk: modified SentToContactList class to have long id
+//	clk: modified Campaign class to have members email_content, text_content, email_content_format
+	public Result<Campaign> createCampaign(Campaign campaign) throws ConstantContactApiException {
+		try {
+			String requestJson = _om.writeValueAsString(campaign);
+			Response response = doApiRequestWithJson(POST, "campaigns", requestJson);
+			Campaign result = null;
+			if (response.responseCode == HttpStatus.SC_OK || response.responseCode == HttpStatus.SC_CREATED) {
+				InputStream inputStream = new BufferedInputStream(response.inputStream);
+				result = _om.readValue(inputStream, Campaign.class);
+			}
+			
+			return new Result<Campaign>(response, result);
+		} catch (JsonGenerationException e) {
+			Ln.e(e);
+			throw new ConstantContactApiException(e);
+		} catch (JsonMappingException e) {
+			Ln.e(e);
+			throw new ConstantContactApiException(e);
+		} catch (IOException e) {
+			Ln.e(e);
+			throw new ConstantContactApiException(e);
+		}
+	}
 
 	private Response doApiRequest(String method, String path, Object... params) {
 		final String url = getApiRequestUrl(path, params);

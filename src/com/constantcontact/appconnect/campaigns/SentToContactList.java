@@ -1,5 +1,5 @@
 package com.constantcontact.appconnect.campaigns;
 
 public class SentToContactList {
-	public int id;
+	public long id;
 }

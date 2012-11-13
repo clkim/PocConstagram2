@@ -1,6 +1,7 @@
 package com.examplectct.pocconstagram2;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,6 +30,7 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -62,6 +64,9 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static RadioGroup templatesRadioGroup;
 	private static ImageView campaignImageView;
 	private static Bitmap mImageBitmap;
+	private static EditText titleSubject;
+	private static EditText content;
+	private static EditText webSite;
 	
 	private static AppConnectApi acApi;
 	private static Account account;
@@ -322,6 +327,11 @@ public class MainActivity extends SherlockFragmentActivity {
 			Log.d(TAG_LOG, "**Starting/Ending CampaignFragment's onCreateView()");
 			View view = inflater.inflate(R.layout.activity_fragment_campaign, container, false);
 			
+			// get title text view
+			titleSubject = (EditText) view.findViewById(R.id.editTextTitleSubject);
+			content = (EditText) view.findViewById(R.id.editTextContent);
+			webSite = (EditText) view.findViewById(R.id.editTextWebsite);
+			
 			// set image view
 			campaignImageView = (ImageView) view.findViewById(R.id.imageview);
 			if (mImageBitmap!=null) campaignImageView.setImageBitmap(mImageBitmap);
@@ -463,6 +473,9 @@ public class MainActivity extends SherlockFragmentActivity {
 				@Override
 				public void run() {
 					try {
+						// create a new email campaign
+						Long campaignId = createNewDraftCampaign();
+						
 						// get time now
 						Calendar cTime = Calendar.getInstance();
 						cTime.add(Calendar.MINUTE, 15); // arbitrarily add 15 minute delay
@@ -471,7 +484,7 @@ public class MainActivity extends SherlockFragmentActivity {
 						
 						int checkedRadioButtonId = MainActivity.templatesRadioGroup.getCheckedRadioButtonId();
 						RadioButton checkedRadioButton = (RadioButton) MainActivity.templatesRadioGroup.findViewById(checkedRadioButtonId);
-						long campaignId = Long.parseLong((String)checkedRadioButton.getTag()); // "1100392652031"  or  "1100392008919"
+//						long campaignId = Long.parseLong((String)checkedRadioButton.getTag()); // "1100392652031"  or  "1100392008919"
 						
 						Result<Schedule> result = acApi.scheduleCampaign(campaignId, soonestAllowed, Locale.US);
 						final StringBuffer sb = new StringBuffer();
@@ -533,6 +546,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				elist = MainActivity.emailLists.get(i);
 				if (elist != null) { //TODO can't test for status ACTIVE; second list in test account has status HIDDEN for some reason
 					rb.setText(elist.name);
+					rb.setTag(elist.id); // store listId for use when creating a campaign
 					rb.setVisibility(View.VISIBLE);
 					if (i == 0) {
 						radioGroup.check(rb.getId());
@@ -556,5 +570,18 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
 		return view;
     }
+	
+	private static Long createNewDraftCampaign() {
+		Campaign c = new Campaign();
+		c.name = SimpleDateFormat.getDateTimeInstance().format(new Date());
+		c.subject= titleSubject.getText().toString();
+		c.from_name = "ctct";
+		c.from_email = "ckim@constantcontact.com";
+		c.reply_to_email = "ckim@constantcontact.com";
+		
+		
+		
+		return 0l;
+	}
     
 }
