@@ -23,7 +23,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -32,6 +31,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -79,6 +79,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static AppConnectApi acApi;
 	private static Account account;
 	private static Handler handler;
+	private static String emailContent;
 	
 	private static ArrayList<EmailList> emailLists = new ArrayList<EmailList>();
 	private static ArrayList<Campaign> draftCampaigns = new ArrayList<Campaign>();
@@ -127,13 +128,13 @@ public class MainActivity extends SherlockFragmentActivity {
 				acApi.setAccount(account);
 				
 				EmailList[] elArray = null;
-				Campaign[] draftcampaignArray = null;
+//				Campaign[] draftcampaignArray = null;
 				try {
 					Result<EmailList[]> result = acApi.getLists();
 					elArray = result.getResult();
 					
-					Result<Campaign[]> result2 = acApi.getCampaigns(CampaignStatus.DRAFT);
-					draftcampaignArray = result2.getResult();
+//					Result<Campaign[]> result2 = acApi.getCampaigns(CampaignStatus.DRAFT);
+//					draftcampaignArray = result2.getResult();
 				} catch (ConstantContactApiException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -146,22 +147,22 @@ public class MainActivity extends SherlockFragmentActivity {
 			        }
 				}
 				
-				// store draft campaigns 
-				if (draftcampaignArray!=null && draftcampaignArray.length>0) {
-					for (int i = 0; i < draftcampaignArray.length; i++) {
-						draftCampaigns.add(draftcampaignArray[i]);
-					}
-				}
+//				// store draft campaigns 
+//				if (draftcampaignArray!=null && draftcampaignArray.length>0) {
+//					for (int i = 0; i < draftcampaignArray.length; i++) {
+//						draftCampaigns.add(draftcampaignArray[i]);
+//					}
+//				}
 				
 				Log.d(TAG_LOG, "emailLists size "+emailLists.size());
-				Log.d(TAG_LOG, "draftCampaigns size "+draftCampaigns.size());
+//				Log.d(TAG_LOG, "draftCampaigns size "+draftCampaigns.size());
 				
 				return null;
 			}
 
 			@Override
 			protected void onPostExecute(Void result) {
-				templatesView = createRadioGroupInTemplatesFragment(templatesView);
+//				templatesView = createRadioGroupInTemplatesFragment(templatesView);
 				audienceView = createRadioGroupInAudienceFragment(audienceView);
 				mSectionsPagerAdapter.notifyDataSetChanged();
 				Log.d(TAG_LOG, "**Ending AsyncTask onPostExecute()");
@@ -380,8 +381,13 @@ public class MainActivity extends SherlockFragmentActivity {
 				Bundle savedInstanceState) {
 			Log.d(TAG_LOG, "**Starting TemplatesFragment's onCreateView()");
 			templatesView = inflater.inflate(R.layout.activity_fragment_templates, container, false);
+			
+			WebView webView = (WebView) templatesView.findViewById(R.id.webView1);
+			webView.loadDataWithBaseURL("constantcontact.com", jReadEmailContentFromFile(R.raw.invtempl1),
+					"text/html", "UTF-8", null);
+			
 			templatesRadioGroup = (RadioGroup) templatesView.findViewById(R.id.radioGroup1);
-			templatesView = createRadioGroupInTemplatesFragment(templatesView);
+//			templatesView = createRadioGroupInTemplatesFragment(templatesView);
 			
 			Log.d(TAG_LOG, "**Ending TemplatesFragment's onCreateView()");
 			return templatesView;
@@ -647,7 +653,12 @@ public class MainActivity extends SherlockFragmentActivity {
 			e.printStackTrace();
 		}
         
-        return sb.toString();
+        emailContent = sb.toString();
+        emailContent.replace("content~here", content.getText().toString());
+        
+		emailContent.replace("rgb(0, 0, 0)", "rgb(0, 0, 255)");
+
+        return emailContent;
 	}
     
 }

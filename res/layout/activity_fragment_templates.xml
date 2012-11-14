@@ -2,74 +2,41 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical"
+    android:padding="15dp" >
 
-    <LinearLayout
+    <WebView
+        android:id="@+id/webView1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="15dp"
-	    style="?android:attr/listSeparatorTextViewStyle" >
+        android:gravity="center" />
 
-        <CheckBox
-            android:id="@+id/checkBox1Email"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:clickable="false"
-            android:text="Email" />
-
-        <RadioGroup
-            android:id="@+id/radioGroup1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="30dp" >
-
-            <RadioButton
-                android:id="@+id/radio0"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="RadioButton" />
-
-            <RadioButton
-                android:id="@+id/radio1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="RadioButton" />
-
-            <RadioButton
-                android:id="@+id/radio2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="RadioButton" />
-        </RadioGroup>
-
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="15dp"
-	    style="?android:attr/listSeparatorTextViewStyle" >
-    
-    	<CheckBox
-        	android:id="@+id/checkBox2Facebook"
-        	android:layout_width="match_parent"
-        	android:layout_height="wrap_content"
-        	android:text="Facebook" />
-    </LinearLayout>
-
-        <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="15dp"
-	    style="?android:attr/listSeparatorTextViewStyle" >
-
-    	<CheckBox
-        	android:id="@+id/checkBox3Twitter"
-        	android:layout_width="match_parent"
-        	android:layout_height="wrap_content"
-        	android:text="Twitter" />
-    </LinearLayout>
+	<RadioGroup
+	    android:id="@+id/radioGroup1"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:gravity="center_horizontal"
+	    android:orientation="horizontal"
+	    android:layout_marginTop="10dp" >
+	
+	    <RadioButton
+	        android:id="@+id/radio0Red"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:checked="true"
+	        android:text="Blue" />
+	
+	    <RadioButton
+	        android:id="@+id/radio1Green"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="Red" />
+	
+	    <RadioButton
+	        android:id="@+id/radio2Blue"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="Green" />
+	</RadioGroup>
 
 </LinearLayout>
