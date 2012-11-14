@@ -23,7 +23,10 @@ public class Campaign {
     public String view_as_web_page_link_text;
     public String greeting_salutations;
     public String greeting_name;
-    public String greeting_String;
+    public String greeting_string;
+    public String email_content;
+    public String text_content;
+    public String email_content_format;
     public MessageFooter message_footer;
     public TrackingSummary tracking_summary;
     public String archive_status;

@@ -1,12 +1,16 @@
 package com.examplectct.pocconstagram2;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
+import roboguice.util.Ln;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -19,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -45,7 +50,9 @@ import com.constantcontact.appconnect.AppConnectApi.Result;
 import com.constantcontact.appconnect.ConstantContactApiException;
 import com.constantcontact.appconnect.campaigns.Campaign;
 import com.constantcontact.appconnect.campaigns.CampaignStatus;
+import com.constantcontact.appconnect.campaigns.MessageFooter;
 import com.constantcontact.appconnect.campaigns.Schedule;
+import com.constantcontact.appconnect.campaigns.SentToContactList;
 import com.constantcontact.appconnect.contacts.EmailList;
 import com.constantcontact.oauth.Account;
 
@@ -59,6 +66,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static final int ACTION_PICK_PHOTO_GALLERY		= 1;	// there is a bug, see
 	private static final int ACTION_PICK_PHOTO_GALLERY_BUG	= 65537;// https://groups.google.com/forum/?fromgroups=#!topic/android-developers/NiM_dAOtXQU
 	
+	private static MainActivity mainActivity;
 	private static View templatesView;
 	private static View audienceView;
 	private static RadioGroup templatesRadioGroup;
@@ -106,6 +114,8 @@ public class MainActivity extends SherlockFragmentActivity {
         
         // set up handler for worker thread to do stuff on this UI thread
         handler = new Handler();
+        // save activity object for use by helper method
+        mainActivity = this;
         
         // API call in AsyncTask worker thread to get email lists
         AsyncTask<Void, Void, Void> getEmailListsAsyncTask = new AsyncTask<Void, Void, Void>() {
@@ -474,7 +484,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				public void run() {
 					try {
 						// create a new email campaign
-						Long campaignId = createNewDraftCampaign();
+						long campaignId = Long.parseLong(createNewDraftCampaign());
 						
 						// get time now
 						Calendar cTime = Calendar.getInstance();
@@ -571,17 +581,73 @@ public class MainActivity extends SherlockFragmentActivity {
 		return view;
     }
 	
-	private static Long createNewDraftCampaign() {
+	private static String createNewDraftCampaign() throws ConstantContactApiException {
+		try {
+			Campaign campaign = jSetupNewCampaign();
+			Result<Campaign> result = acApi.createCampaign(campaign);
+			
+			return result.getResult().id;
+			
+		} catch (ConstantContactApiException e) {
+			Ln.e(e);
+			throw new ConstantContactApiException(e);
+		}
+	}
+	
+	private static Campaign jSetupNewCampaign() {
 		Campaign c = new Campaign();
-		c.name = SimpleDateFormat.getDateTimeInstance().format(new Date());
+		c.name = "EasyCampaign"+(new Date().getTime());
 		c.subject= titleSubject.getText().toString();
 		c.from_name = "ctct";
 		c.from_email = "ckim@constantcontact.com";
 		c.reply_to_email = "ckim@constantcontact.com";
+//		c.email_content = jReadEmailContentFromFile(R.raw.invtempl1);
+		c.email_content = "<html lang=\"en\" xml:lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:cctd=\"http://www.constantcontact.com/cctd\">\n\n\n<body>Testing...</body></html>";
+		c.text_content = "<Text><Greeting/>" + content.getText().toString() + "</Text>";
+		c.email_content_format = "XHTML";
+		//set sent_to_contact_list
+		SentToContactList stContactList = new SentToContactList();
+		stContactList.id = 1738066246; //TODO
+		List<SentToContactList> list = new ArrayList<SentToContactList>();
+		list.add(stContactList);
+		c.sent_to_contact_lists = list;
+		//set message footer
+		MessageFooter mf = new MessageFooter();
+		mf.city = "Waltham";
+		mf.state = "MA";
+		mf.country = "US";
+		mf.organization_name = "ctct";
+		mf.address_line_1 = "1601 Trapelo Road";
+		mf.address_line_2 = "";
+		mf.address_line_3 = "";
+		mf.international_state = "";
+		mf.postal_code = "02451";
+		mf.include_forward_email = false;
+		mf.forward_email_link_text = "Forward email";
+		mf.include_subscribe_link = false;
+		mf.subscribe_link_text = "Subscribe me!";
+		c.message_footer = mf;
 		
-		
-		
-		return 0l;
+		return c;
+	}
+	
+	private static String jReadEmailContentFromFile(int R_raw_file) {
+        // set email content
+        // read static template file
+        InputStream inputStream = mainActivity.getResources().openRawResource(R_raw_file);
+        // get content into a string
+        BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        try {
+			while ((line = r.readLine()) != null) {
+			    sb.append(line);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        
+        return sb.toString();
 	}
     
 }

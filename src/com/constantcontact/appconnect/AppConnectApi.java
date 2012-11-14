@@ -624,7 +624,8 @@ public class AppConnectApi {
 
 //	clk: new createCampaign()
 //	clk: modified SentToContactList class to have long id
-//	clk: modified Campaign class to have members email_content, text_content, email_content_format
+//	clk: modified EmailList to have long id
+//	clk: modified Campaign class to have members email_content, text_content, email_content_format; fixed greeting_string (not greeting_String)
 	public Result<Campaign> createCampaign(Campaign campaign) throws ConstantContactApiException {
 		try {
 			String requestJson = _om.writeValueAsString(campaign);
