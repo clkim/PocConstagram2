@@ -21,6 +21,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -83,6 +84,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	private static ArrayList<EmailList> emailLists;
 //	private static ArrayList<Campaign> draftCampaigns;
+
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide fragments for each of the
@@ -418,7 +420,7 @@ public class MainActivity extends SherlockFragmentActivity {
      * The Audience fragment in third section of the app
      */
     public static class AudienceFragment extends SherlockFragment {
-    	public AudienceFragment() {
+     	public AudienceFragment() {
     	}
 
 		@Override
@@ -467,13 +469,18 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
 		
 		private void doSendEmailCampaign() {
-			Thread scheduleCampaignThread = new Thread(new Runnable() {
-				
+		   	final Handler jHandler = new Handler();
+			final StringBuffer newCampaignId = new StringBuffer("");
+			
+//			final Runnable jScheduleCampaignRunnable = new Runnable() {
+			final Thread jscheduleCampaignThread = new Thread(new Runnable() { 
 				@Override
 				public void run() {
+//					Looper.prepare();
 					try {
 						// create a new email campaign
-						long campaignId = Long.parseLong(createNewDraftCampaign());
+						long campaignId = Long.parseLong(newCampaignId.toString());
+//						long campaignId = Long.parseLong(createNewDraftCampaign());
 						
 						// get time now
 						Calendar cTime = Calendar.getInstance();
@@ -481,8 +488,8 @@ public class MainActivity extends SherlockFragmentActivity {
 						// get soonest time to schedule email campaign as a Date
 						Date soonestAllowed = cTime.getTime();
 						
-						int checkedRadioButtonId = MainActivity.templatesRadioGroup.getCheckedRadioButtonId();
-						RadioButton checkedRadioButton = (RadioButton) MainActivity.templatesRadioGroup.findViewById(checkedRadioButtonId);
+//						int checkedRadioButtonId = MainActivity.templatesRadioGroup.getCheckedRadioButtonId();
+//						RadioButton checkedRadioButton = (RadioButton) MainActivity.templatesRadioGroup.findViewById(checkedRadioButtonId);
 //						long campaignId = Long.parseLong((String)checkedRadioButton.getTag()); // "1100392652031"  or  "1100392008919"
 						
 						Result<Schedule> result = acApi.scheduleCampaign(campaignId, soonestAllowed, Locale.US);
@@ -509,11 +516,34 @@ public class MainActivity extends SherlockFragmentActivity {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+//					Looper.loop();
 				}
+//			};
 			});
-			scheduleCampaignThread.start();
+//			jscheduleCampaignThread.start();
 			
-			jShowToast("Sending Campaign");
+			new Thread(new Runnable() {
+				
+				@Override
+				public void run() {
+					Campaign campaign = jSetupNewCampaign();
+					try {
+						Looper.prepare();						
+						jShowToast("Sending Campaign");
+						// blocking call to create a new draft campaign
+						newCampaignId.append( acApi.createCampaign(campaign).getResult().id );
+						jHandler.post(jscheduleCampaignThread);
+						Looper.loop();
+						//TODO looper quit?
+						
+					} catch (ConstantContactApiException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}).start();
+			
+//			jShowToast("Sending Campaign");
 		}
 		
 		private void doSendFacebook() {
@@ -591,8 +621,8 @@ public class MainActivity extends SherlockFragmentActivity {
 		c.from_name = "ctct";
 		c.from_email = "ckim@constantcontact.com";
 		c.reply_to_email = "ckim@constantcontact.com";
-//		c.email_content = jReadEmailContentFromFile(R.raw.invtempl1);
-		c.email_content = "<html lang=\"en\" xml:lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:cctd=\"http://www.constantcontact.com/cctd\">\n\n\n<body>Testing...</body></html>";
+		c.email_content = jReadEmailContentFromFile(R.raw.invtempl1);
+//		c.email_content = "<html lang=\"en\" xml:lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:cctd=\"http://www.constantcontact.com/cctd\">\n\n\n<body>Testing...</body></html>";
 		c.text_content = "<Text><Greeting/>" + content.getText().toString() + "</Text>";
 		c.email_content_format = "XHTML";
 		//set sent_to_contact_list
