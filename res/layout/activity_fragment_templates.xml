@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroller"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true" >
+    
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="15dp" >
+    android:padding="15dp"
+    android:gravity="center_horizontal" >
 
     <WebView
         android:id="@+id/webView1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center" />
+        android:layout_width="wrap_content"
+        android:layout_height="0dip"
+        android:layout_weight="1.0" />
 
 	<RadioGroup
 	    android:id="@+id/radioGroup1"
@@ -24,19 +31,21 @@
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:checked="true"
-	        android:text="Blue" />
+	        android:text="Red   " />
 	
 	    <RadioButton
 	        android:id="@+id/radio1Green"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:text="Red" />
+	        android:text="Green " />
 	
 	    <RadioButton
 	        android:id="@+id/radio2Blue"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:text="Green" />
+	        android:text="Blue  " />
 	</RadioGroup>
 
 </LinearLayout>
+
+</ScrollView>

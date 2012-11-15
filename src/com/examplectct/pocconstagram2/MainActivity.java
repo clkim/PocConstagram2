@@ -26,6 +26,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v4.view.ViewPager.SimpleOnPageChangeListener;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +35,6 @@ import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -49,7 +49,6 @@ import com.constantcontact.appconnect.AppConnectApi;
 import com.constantcontact.appconnect.AppConnectApi.Result;
 import com.constantcontact.appconnect.ConstantContactApiException;
 import com.constantcontact.appconnect.campaigns.Campaign;
-import com.constantcontact.appconnect.campaigns.CampaignStatus;
 import com.constantcontact.appconnect.campaigns.MessageFooter;
 import com.constantcontact.appconnect.campaigns.Schedule;
 import com.constantcontact.appconnect.campaigns.SentToContactList;
@@ -70,6 +69,7 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static View templatesView;
 	private static View audienceView;
 	private static RadioGroup templatesRadioGroup;
+	private static WebView templatesWebview;
 	private static ImageView campaignImageView;
 	private static Bitmap mImageBitmap;
 	private static EditText titleSubject;
@@ -81,8 +81,8 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static Handler handler;
 	private static String emailContent;
 	
-	private static ArrayList<EmailList> emailLists = new ArrayList<EmailList>();
-	private static ArrayList<Campaign> draftCampaigns = new ArrayList<Campaign>();
+	private static ArrayList<EmailList> emailLists;
+//	private static ArrayList<Campaign> draftCampaigns;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide fragments for each of the
@@ -111,6 +111,17 @@ public class MainActivity extends SherlockFragmentActivity {
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mSectionsPagerAdapter);
+        
+        mViewPager.setOnPageChangeListener(new SimpleOnPageChangeListener() {
+        	
+        	@Override
+        	public void onPageScrolled (int position, float positionOffset, int positionOffsetPixels) {
+        		if (position == 0 && positionOffset > 0) {
+        			templatesWebview.loadDataWithBaseURL("constantcontact.com", jReadEmailContentFromFile(R.raw.invtempl1),
+        					"text/html", "UTF-8", null);
+        		}
+        	}
+        });
         
         
         // set up handler for worker thread to do stuff on this UI thread
@@ -141,6 +152,7 @@ public class MainActivity extends SherlockFragmentActivity {
 				}
 				
 				// store email lists
+				emailLists = new ArrayList<EmailList>();
 				if (elArray!=null && elArray.length>0) {
 					for (int i = 0; i < elArray.length; i++) {
 			        	emailLists.add(elArray[i]);
@@ -148,13 +160,14 @@ public class MainActivity extends SherlockFragmentActivity {
 				}
 				
 //				// store draft campaigns 
+//				draftCampaigns = new ArrayList<Campaign>();
 //				if (draftcampaignArray!=null && draftcampaignArray.length>0) {
 //					for (int i = 0; i < draftcampaignArray.length; i++) {
 //						draftCampaigns.add(draftcampaignArray[i]);
 //					}
 //				}
 				
-				Log.d(TAG_LOG, "emailLists size "+emailLists.size());
+				Log.d( TAG_LOG, "emailLists size "+(emailLists==null ? 0 : emailLists.size()) );
 //				Log.d(TAG_LOG, "draftCampaigns size "+draftCampaigns.size());
 				
 				return null;
@@ -382,53 +395,23 @@ public class MainActivity extends SherlockFragmentActivity {
 			Log.d(TAG_LOG, "**Starting TemplatesFragment's onCreateView()");
 			templatesView = inflater.inflate(R.layout.activity_fragment_templates, container, false);
 			
-			WebView webView = (WebView) templatesView.findViewById(R.id.webView1);
-			webView.loadDataWithBaseURL("constantcontact.com", jReadEmailContentFromFile(R.raw.invtempl1),
-					"text/html", "UTF-8", null);
-			
 			templatesRadioGroup = (RadioGroup) templatesView.findViewById(R.id.radioGroup1);
-//			templatesView = createRadioGroupInTemplatesFragment(templatesView);
+			templatesRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+				
+				@Override
+				public void onCheckedChanged(RadioGroup group, int checkedId) {
+					templatesWebview.loadDataWithBaseURL("constantcontact.com", jReadEmailContentFromFile(R.raw.invtempl1),
+        					"text/html", "UTF-8", null);
+				}
+			});
 			
+			templatesWebview = (WebView) templatesView.findViewById(R.id.webView1);
+			templatesWebview.loadDataWithBaseURL("constantcontact.com", jReadEmailContentFromFile(R.raw.invtempl1),
+					"text/html", "UTF-8", null);
+
 			Log.d(TAG_LOG, "**Ending TemplatesFragment's onCreateView()");
 			return templatesView;
 		}
-    }
-    
-    private static View createRadioGroupInTemplatesFragment(View view) {
-    	if (templatesRadioGroup == null) return view; // templatesfragement view (and radiogroup in it) not yet created
-    	RadioGroup radioGroup = templatesRadioGroup;
-		RadioButton rb;
-		Campaign drftCampaign;
-		// limit to show maximum of 3 radio buttons
-		for (int i=0; i<3; i++) {
-			rb = (RadioButton) radioGroup.getChildAt(i);
-			if (i < MainActivity.draftCampaigns.size()) {
-				drftCampaign = MainActivity.draftCampaigns.get(i);
-				if (drftCampaign != null) {
-					rb.setText(drftCampaign.name);
-					rb.setTag(drftCampaign.id); // store id for use in Audience fragment to schedule this campaign
-					rb.setVisibility(View.VISIBLE);
-					if (i == 0) {
-						radioGroup.check(rb.getId());
-						CheckBox cb = (CheckBox) view.findViewById(R.id.checkBox1Email);
-						cb.setChecked(true);
-					}
-				} else {
-					rb.setVisibility(View.GONE);
-				}
-			} else {
-				if (i != 0) {
-					rb.setVisibility(View.GONE);
-				} else {
-					// leave first radio button there
-					radioGroup.clearCheck();
-					rb.setText("You have no draft campaigns!");
-					CheckBox cb = (CheckBox) view.findViewById(R.id.checkBox1Email);
-					cb.setChecked(false);
-				}
-			}
-		}
-		return view;
     }
     
     /**
@@ -467,7 +450,7 @@ public class MainActivity extends SherlockFragmentActivity {
 			// set listener for Email checkbox
 			CheckBox emailCheckBox = (CheckBox) view.findViewById(R.id.checkBox1SendEmail);
 			final RadioGroup radioGroup = (RadioGroup) view.findViewById(R.id.radioGroup1Send);
-			emailCheckBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			emailCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 				
 				@Override
 				public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -558,13 +541,14 @@ public class MainActivity extends SherlockFragmentActivity {
 		// limit to show maximum of 3 radio buttons
 		for (int i=0; i<3; i++) {
 			rb = (RadioButton) radioGroup.getChildAt(i);
-			if (i < MainActivity.emailLists.size()) {
+			if (emailLists != null  &&  i < MainActivity.emailLists.size()) {
 				elist = MainActivity.emailLists.get(i);
 				if (elist != null) { //TODO can't test for status ACTIVE; second list in test account has status HIDDEN for some reason
 					rb.setText(elist.name);
 					rb.setTag(elist.id); // store listId for use when creating a campaign
 					rb.setVisibility(View.VISIBLE);
-					if (i == 0) {
+					if (radioGroup.getCheckedRadioButtonId()==-1 && i==0) {
+						// no email lists previously but now there is at least one so checkmark first radiobutton
 						radioGroup.check(rb.getId());
 						CheckBox cb = (CheckBox) view.findViewById(R.id.checkBox1SendEmail);
 						cb.setChecked(true);
@@ -654,11 +638,48 @@ public class MainActivity extends SherlockFragmentActivity {
 		}
         
         emailContent = sb.toString();
-        emailContent.replace("content~here", content.getText().toString());
+        emailContent = emailContent.replace("title~here", titleSubject.getText().toString());
+        emailContent = emailContent.replace("content~here", content.getText().toString());
         
-		emailContent.replace("rgb(0, 0, 0)", "rgb(0, 0, 255)");
+        int rgbStartIndex = emailContent.indexOf("color: rgb(");
+        int rgbEndIndex = emailContent.indexOf("); font-family:", rgbStartIndex);
+        int colorButtonIdChosen = 0;
+        if (templatesRadioGroup!=null) colorButtonIdChosen = templatesRadioGroup.getCheckedRadioButtonId();
+        String colorRGB = "color: rgb(0, 0, 0)";
+        switch (colorButtonIdChosen) {
+        	case R.id.radio0Red: {
+        		colorRGB = "color: rgb(255, 0, 0)";
+        		break;
+        	}
+        	case R.id.radio1Green: {
+        		colorRGB = "color: rgb(0, 255, 0)";
+        		break;
+        	}
+        	case R.id.radio2Blue: {
+        		colorRGB = "color: rgb(0, 0, 255)";
+        		break;
+        	}
+        }
+		emailContent = emailContent.substring(0, rgbStartIndex) + colorRGB + emailContent.substring(rgbEndIndex+1);
+		
+		int srcStartIndex = emailContent.indexOf("src='https");
+		int srcEndIndex = emailContent.indexOf(".jpg' /></td>");
+		
+		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/skyscrapers_clouds.jpg"; //TODO
+		emailContent = emailContent.substring(0, srcStartIndex) + dummyImgSrc + emailContent.substring(srcEndIndex+4);
 
         return emailContent;
+	}
+	
+	/** Some lifecycle callbacks so that the image can survive orientation change */
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+	}
+	
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
 	}
     
 }
