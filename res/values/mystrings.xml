@@ -7,5 +7,9 @@
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
     <string name="title_activity_main">Constagram2</string>
+    <string name="album_name">UploadMLP</string>
+    <string name="pref_key_folderid">1</string>
+    <string name="pref_key_filename">_UploadMLP</string>
+    <string name="pref_key_filedesc">UploadMLP picture</string>
 
 </resources>

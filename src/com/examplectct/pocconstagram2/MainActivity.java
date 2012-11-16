@@ -1,27 +1,42 @@
 package com.examplectct.pocconstagram2;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
+import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
+
 import roboguice.util.Ln;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Bitmap.CompressFormat;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -55,6 +70,8 @@ import com.constantcontact.appconnect.campaigns.Schedule;
 import com.constantcontact.appconnect.campaigns.SentToContactList;
 import com.constantcontact.appconnect.contacts.EmailList;
 import com.constantcontact.oauth.Account;
+import com.ctctlabs.ctctwsjavalib.CTCTConnection;
+import com.ctctlabs.ctctwsjavalib.Image;
 
 public class MainActivity extends SherlockFragmentActivity {
 	private static final String USERNAME		= "ckim201211";
@@ -63,10 +80,13 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static final long EXPIRATION		= 0l; // not used?
 	
 	private static final String TAG_LOG						= "MainActivity";
-	private static final int ACTION_PICK_PHOTO_GALLERY		= 1;	// there is a bug, see
+	private static final int ACTION_PICK_PHOTO_GALLERY		= 1;	// there is a bug, so value returned is different
 	private static final int ACTION_PICK_PHOTO_GALLERY_BUG	= 65537;// https://groups.google.com/forum/?fromgroups=#!topic/android-developers/NiM_dAOtXQU
+	private static final int ACTION_TAKE_PHOTO				= 2;
+	private static final int ACTION_TAKE_PHOTO_BUG			= 65538;
+	private static final String JPEG_FILE_PREFIX			= "IMG_";
+	private static final String JPEG_FILE_SUFFIX			= ".jpg";
 	
-	private static MainActivity mainActivity;
 	private static View templatesView;
 	private static View audienceView;
 	private static RadioGroup templatesRadioGroup;
@@ -77,14 +97,21 @@ public class MainActivity extends SherlockFragmentActivity {
 	private static EditText content;
 	private static EditText webSite;
 	
+	private static MainActivity mainActivity;
 	private static AppConnectApi acApi;
 	private static Account account;
 	private static Handler handler;
 	private static String emailContent;
-	
 	private static ArrayList<EmailList> emailLists;
 //	private static ArrayList<Campaign> draftCampaigns;
-
+	private static String mCurrentPhotoPath;
+	private static AlbumStorageDirFactory	mAlbumStorageDirFactory;
+	private static String uriCampaignImage;
+	
+	private final BitmapFactory.Options bmOptions			= new BitmapFactory.Options();	
+	private CTCTConnection			conn;
+	private HashMap<String, Object>	attributes;
+	
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide fragments for each of the
@@ -185,7 +212,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		};
 		getEmailListsAsyncTask.execute(null, null, null);
         
-//        // Temp fake the email lists array which would be returned in api call getLists()
+//		// Temp fake the email lists array which would be returned in api call getLists()
 //		AsyncTask<Void, Void, Void> getFakeEmailListsAsyncTask = new AsyncTask<Void, Void, Void>() {
 //		
 //			@Override
@@ -226,6 +253,14 @@ public class MainActivity extends SherlockFragmentActivity {
 //		};
 //		getFakeEmailListsAsyncTask.execute(null, null, null);
 		
+        // set picture file base directory path
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+			// directory is /Pictures/ in Froyo
+			mAlbumStorageDirFactory = new FroyoAlbumDirFactory();
+		} else {
+			// directory is /DCIM/
+			mAlbumStorageDirFactory = new BaseAlbumDirFactory();
+		}
 		
         Log.d(TAG_LOG, "**Ending activity onCreate()");
     }
@@ -234,14 +269,61 @@ public class MainActivity extends SherlockFragmentActivity {
     @Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
 		switch (requestCode) {
+		case ACTION_TAKE_PHOTO_BUG: {
+			if (resultCode == RESULT_OK) {
+				// mCurrentPhotoPath was already set before starting Camera app activity, so just handle photo
+				handleCameraPhoto();
+			}
+			if (resultCode == RESULT_CANCELED) {
+				// mCurrentPhotoPath was already set before starting Camera app activity, so delete that temp file
+				new File(mCurrentPhotoPath).delete();
+			}
+			break;
+		}
 		case ACTION_PICK_PHOTO_GALLERY_BUG: {
 			if (resultCode == RESULT_OK){  
 	            Uri selectedImageUri = intent.getData();
-	            String mCurrentPhotoPath = mParseUriToFilepath(selectedImageUri);
-	            setPicFromExifThumbnail(mCurrentPhotoPath);
+	            mCurrentPhotoPath = mParseUriToFilepath(selectedImageUri);
+	            setPicFromExifThumbnail();
 	        }
 		}
 		}
+	}
+    
+    /**
+	 * Display picture in the Gallery app,
+	 *  and call routine to display picture thumbnail in app, and to do upload
+	 */
+	private void handleCameraPhoto() {
+		if (mCurrentPhotoPath != null) {
+			// add picture to be displayed by Gallery app
+			galleryAddPic();
+		}
+		handlePicture();
+	}
+	
+	/**
+	 * Routine to display picture thumbnail in app
+	 *  and start background thread to do upload if already authenticated
+	 */
+	private void handlePicture() {
+		if (mCurrentPhotoPath != null) {
+			// first, display picture thumbnail in app
+			setPicFromExifThumbnail();
+			
+			new UploadImageAsyncTask().execute(mCurrentPhotoPath);
+		}
+	}
+	
+	/**
+	 * Helper to display picture in the Gallery app
+	 */
+	private void galleryAddPic() {
+		    Intent mediaScanIntent = new Intent("android.intent.action.MEDIA_SCANNER_SCAN_FILE");
+			File f = new File(mCurrentPhotoPath);
+		    Uri contentUri = Uri.fromFile(f);
+		    mediaScanIntent.setData(contentUri);
+		    this.sendBroadcast(mediaScanIntent);
 	}
     
 	private String mParseUriToFilepath(Uri uri) {
@@ -270,7 +352,7 @@ public class MainActivity extends SherlockFragmentActivity {
 		return null;
 	}
 	
-	private void setPicFromExifThumbnail(String mCurrentPhotoPath) {
+	private void setPicFromExifThumbnail() {
 		try {
 			ExifInterface exif = new ExifInterface(mCurrentPhotoPath);
 			mImageBitmap = null;
@@ -290,7 +372,168 @@ public class MainActivity extends SherlockFragmentActivity {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Inner class that extends AyncTask class to do upload in a background thread
+	 * @author ckim
+	 *
+	 */
+	private class UploadImageAsyncTask extends AsyncTask<String, Void, String> {
+		
+		@Override
+		protected String doInBackground(String... paths) {
+			String picturePathSdCard = paths[0];
+			
+			// get the size of the image
+			bmOptions.inJustDecodeBounds = true;
+			bmOptions.inSampleSize = 1;
+			BitmapFactory.decodeFile(picturePathSdCard, bmOptions);
+			if( bmOptions.outWidth==-1 || bmOptions.outHeight==-1 ) {
+				return null; // there is an error
+			}
+			
+			// set BitmapFactory.Options object to be used by decodeFile()
+			int scaleFactorUpload = calculateInSampleSize(bmOptions, 800, 600);
+//			Log.d(LOG_TAG, "** picture outWidth, outHeight: "+bmOptions.outWidth+", "+bmOptions.outHeight);
+//			Log.d(LOG_TAG, "** inSampleSize is "+scaleFactorUpload);
+			bmOptions.inJustDecodeBounds = false;
+			bmOptions.inSampleSize = scaleFactorUpload;
+			bmOptions.inPurgeable = true;
+			bmOptions.inInputShareable = true;
+			
+			// get bitmap from image file
+			File file = new File(picturePathSdCard);
+			Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath(), bmOptions);
+			
+			String imageUrl;
+			try {
+				// rotate picture if portrait
+				ExifInterface exif = new ExifInterface(picturePathSdCard);
+				if (ExifInterface.ORIENTATION_ROTATE_90 == exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)) {
+					Matrix matrix = new Matrix();
+					matrix.postRotate(90f);
+					bm = Bitmap.createBitmap(bm, 0, 0, bmOptions.outWidth, bmOptions.outHeight, matrix, true);
+				}
 
+				// get byte array of picture image
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				bm.compress(CompressFormat.JPEG, 100, bos);
+				byte[] data = bos.toByteArray();
+
+				// some setup needed by java wrapper library to upload image
+				
+				conn = new CTCTConnection();
+				String userName = conn.authenticateOAuth2(TOKEN); //TODO if userName has been cached try skipping this
+				if (userName == null) return null; // authentication failed
+				Log.d(TAG_LOG, "** authenticated with "+userName);
+
+				// set values for attributes map used by ctctconnection object
+				attributes = new HashMap<String, Object>();
+				// retrieve settings values from default SharedPreferences
+				SharedPreferences shPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+				String folderId = shPref.getString(getString(R.string.pref_key_folderid), "1"); //default is "2";
+				String fileName = shPref.getString(getString(R.string.pref_key_filename), "_UploadMLP")
+						+ new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".jpg";
+				String description = shPref.getString(getString(R.string.pref_key_filedesc), "UploadMLP picture");
+				
+				// call the java wrapper library methods
+				Image imageModelObj = conn.createImage(attributes, folderId, fileName, data, description);
+				imageModelObj.commit();
+				if (conn.getResponseStatusCode() == HttpStatus.SC_CREATED) {
+					imageUrl = (String)imageModelObj.getAttribute("ImageURL");
+				} else {
+					imageUrl = null;
+				}
+				
+			} catch (SocketException e) {
+				return e.getClass().getSimpleName() + ": " + e.getMessage();	// could be wifi not available
+			} catch (UnknownHostException e) {
+				return e.getClass().getSimpleName() + ": " + e.getMessage();	// could be wifi not available
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+				return null;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return null;
+			} catch (JSONException e) {
+				e.printStackTrace();
+				return null;
+			} finally {
+				attributes = null;
+			}
+			
+			return imageUrl;
+		}
+
+		@Override
+		protected void onPostExecute(String result) {
+			String message = "";
+			if (result == null) { //TODO try detect other errors: image too large?, not MLP and exceeded 5 images
+				int connStatusCode = conn.getResponseStatusCode();
+				String connStatusReason = conn.getResponseStatusReason();
+//				Log.d(LOG_TAG, "** Error - Picture imageUrl null; connection status "+connStatusCode + " " + connStatusReason);
+				if (connStatusCode == HttpStatus.SC_BAD_REQUEST) { 
+					message = "Snap! Not uploaded (Bad Request; possible bad folder id setting)";
+				} else if (connStatusCode == 0) {
+					message = "Snap! Please try again (Sorry, reason unknown)";
+				} else {
+					message = "Snap! Not uploaded (" + connStatusReason + ")";
+				}
+			}
+			else if ( result.contains(UnknownHostException.class.getSimpleName())
+					  || result.contains(SocketException.class.getSimpleName()) ) {
+//				Log.d(LOG_TAG, "** Error - "+result);
+				message = "Please check your Internet connection "
+						+ "(" + result.split(": ")[1] + ")"; // reason is after separator; set in catch clause of doInBackground() above
+			}
+			else if (result != null) {
+//				Log.d(LOG_TAG, "**Image Url is "+result);
+				uriCampaignImage = result;
+				message = "Uploaded to CTCT MyLibrary Plus";
+			}
+			
+			
+			// Show toast message
+			Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+			conn = null;
+			super.onPostExecute(result);
+			
+			
+//			// Stop activity if started by ACTION_SEND intent called from the Share menu in Gallery app
+//			if (hasBeenStartedBySendIntent) {
+//				hasBeenStartedBySendIntent = false;					// hasBeenStartedBySendIntent = false
+//				finish();
+//			}
+		}
+		
+	}
+	
+	/**
+	 * Helper to calculate value for the BitmapFactory.Options object's inSampleSize
+	 * @param options is the BitmapFactory.Options object
+	 * @param reqWidth is the requested width
+	 * @param reqHeight is the requested height
+	 * @return the inSampleSize value
+	 */
+	private static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+		// Raw height and width of image
+		final int height = options.outHeight;
+		final int width = options.outWidth;
+		int inSampleSize = 1;
+		
+		if (reqWidth==0 || reqHeight==0) return inSampleSize; // probably invalid input, so just return 1
+		
+		if (height > reqHeight || width > reqWidth) {
+			if (width > height) {
+				inSampleSize = Math.round((float)height / (float)reqHeight);
+			} else {
+				inSampleSize = Math.round((float)width / (float)reqWidth);
+			}
+		}
+		return inSampleSize;
+	}
+	
 
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -366,12 +609,32 @@ public class MainActivity extends SherlockFragmentActivity {
 			ImageButton cameraButton = (ImageButton) view.findViewById(R.id.imageButton1Camera);
 			ImageButton galleryButton = (ImageButton) view.findViewById(R.id.imageButton2Gallery);
 			ImageButton getLibraryButton = (ImageButton) view.findViewById(R.id.imageButton3Get);
-			cameraButton.setOnClickListener(jOnClickListener);
+			cameraButton.setOnClickListener(jOnClickCameraListener);
 			galleryButton.setOnClickListener(jOnClickListener);
 			getLibraryButton.setOnClickListener(jOnClickListener);
 			
 			return view;
 		}
+		
+		private OnClickListener jOnClickCameraListener = new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+				File f = null;
+				try {
+					f = createImageFile();
+					mCurrentPhotoPath = f.getAbsolutePath();
+					takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(f));
+				} catch (IOException e) {
+					e.printStackTrace();
+					f = null;
+					mCurrentPhotoPath = null;
+				}
+				startActivityForResult(takePictureIntent, ACTION_TAKE_PHOTO);
+			}
+		};
 		
 		private OnClickListener jOnClickListener = new OnClickListener() {
 			
@@ -382,6 +645,52 @@ public class MainActivity extends SherlockFragmentActivity {
 				startActivityForResult(gIntent, ACTION_PICK_PHOTO_GALLERY);
 			}
 		};
+		
+	    
+		/**
+		 * Helper to create a picture file to store picture bitmap image
+		 * @return the file created
+		 * @throws IOException
+		 */
+		private File createImageFile() throws IOException {
+			// Create an image file name
+			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+			String imageFileName = JPEG_FILE_PREFIX + timeStamp + "_";
+			File albumF = getAlbumDir();
+			File imageF = File.createTempFile(imageFileName, JPEG_FILE_SUFFIX, albumF);
+			return imageF;
+		}
+		
+		/**
+		 * Helper to make directory for the picture file
+		 * @return a directory (file) object
+		 */
+		private File getAlbumDir() {
+			File storageDir = null;
+			if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+				storageDir = mAlbumStorageDirFactory.getAlbumStorageDir(getAlbumName());
+				if (storageDir != null) {
+					if (! storageDir.mkdirs()) {
+						if (! storageDir.exists()){
+							Log.w(TAG_LOG, "Failed to create directory: "+ storageDir.getAbsolutePath());
+							return null;
+						}
+					}
+				}
+			} else {
+				Log.w(TAG_LOG, getString(R.string.app_name)+": External storage is not mounted READ/WRITE.");
+			}
+			
+			return storageDir;
+		}
+		
+		/**
+		 * Helper to set the directory subfolder
+		 * @return the subfolder name
+		 */
+		private String getAlbumName() {
+			return getString(R.string.album_name);
+		}
     }
     
     /**
@@ -694,9 +1003,13 @@ public class MainActivity extends SherlockFragmentActivity {
 		
 		int srcStartIndex = emailContent.indexOf("src='https");
 		int srcEndIndex = emailContent.indexOf(".jpg' /></td>");
-		
-		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/seaside-city.jpg";
-//		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/skyscrapers_clouds.jpg"; //TODO
+		String dummyImgSrc;
+		if (uriCampaignImage != null) {
+			dummyImgSrc = "src='" + uriCampaignImage;
+		} else {
+			dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/seaside-city.jpg";
+//			dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/skyscrapers_clouds.jpg";
+		}
 		emailContent = emailContent.substring(0, srcStartIndex) + dummyImgSrc + emailContent.substring(srcEndIndex+4);
 
         return emailContent;
