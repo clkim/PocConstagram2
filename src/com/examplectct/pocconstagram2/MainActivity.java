@@ -695,7 +695,8 @@ public class MainActivity extends SherlockFragmentActivity {
 		int srcStartIndex = emailContent.indexOf("src='https");
 		int srcEndIndex = emailContent.indexOf(".jpg' /></td>");
 		
-		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/skyscrapers_clouds.jpg"; //TODO
+		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/seaside-city.jpg";
+//		String dummyImgSrc = "src='" + "https://imgssl.l1.constantcontact.com/ui/stock1/skyscrapers_clouds.jpg"; //TODO
 		emailContent = emailContent.substring(0, srcStartIndex) + dummyImgSrc + emailContent.substring(srcEndIndex+4);
 
         return emailContent;
